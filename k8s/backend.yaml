@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-backend
+  namespace: billing
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: billing-backend }
+  template:
+    metadata:
+      labels: { app: billing-backend }
+    spec:
+      containers:
+        - name: backend
+          image: YOUR_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/billing-app-backend:latest
+          ports: [{ containerPort: 4000 }]
+          env:
+            - name: PORT
+              value: "4000"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: billing-db-secret, key: DATABASE_URL }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 4000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health, port: 4000 }
+            initialDelaySeconds: 25
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: billing
+spec:
+  selector: { app: billing-backend }
+  ports: [{ port: 4000, targetPort: 4000 }]
+  type: ClusterIP

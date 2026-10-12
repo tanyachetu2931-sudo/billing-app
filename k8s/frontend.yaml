@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-frontend
+  namespace: billing
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: billing-frontend }
+  template:
+    metadata:
+      labels: { app: billing-frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: YOUR_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/billing-app-frontend:latest
+          ports: [{ containerPort: 8080 }]
+          readinessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 300m, memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: billing
+spec:
+  selector: { app: billing-frontend }
+  ports: [{ port: 80, targetPort: 8080 }]
+  type: LoadBalancer

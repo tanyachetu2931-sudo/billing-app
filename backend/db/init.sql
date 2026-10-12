@@ -1,0 +1,35 @@
+CREATE TABLE IF NOT EXISTS customers (
+  id BIGSERIAL PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  email VARCHAR(254) NOT NULL DEFAULT '',
+  phone VARCHAR(40) NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS products (
+  id BIGSERIAL PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  sku VARCHAR(80) NOT NULL DEFAULT '',
+  price NUMERIC(12,2) NOT NULL CHECK (price >= 0),
+  stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS invoices (
+  id BIGSERIAL PRIMARY KEY,
+  invoice_number VARCHAR(80) NOT NULL UNIQUE,
+  customer_id BIGINT NOT NULL REFERENCES customers(id),
+  subtotal NUMERIC(12,2) NOT NULL,
+  tax NUMERIC(12,2) NOT NULL,
+  total NUMERIC(12,2) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','PAID','CANCELLED')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS invoice_items (
+  id BIGSERIAL PRIMARY KEY,
+  invoice_id BIGINT NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  product_id BIGINT NOT NULL REFERENCES products(id),
+  quantity INTEGER NOT NULL CHECK (quantity > 0),
+  unit_price NUMERIC(12,2) NOT NULL,
+  line_total NUMERIC(12,2) NOT NULL
+);
+INSERT INTO customers(name,email,phone) VALUES ('Sample Customer','customer@example.com','9000000000') ON CONFLICT DO NOTHING;
+INSERT INTO products(name,sku,price,stock) VALUES ('Notebook','NOTE-001',50.00,100),('Pen','PEN-001',10.00,200) ON CONFLICT DO NOTHING;
