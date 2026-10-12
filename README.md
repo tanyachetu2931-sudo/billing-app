@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # BillWise — Billing Application + DevOps Learning Project
 
 A starter full-stack billing app: React frontend, Node.js/Express API, PostgreSQL, Docker Compose, Kubernetes manifests, and a Jenkins pipeline skeleton.
@@ -134,3 +135,6 @@ The frontend Service is `LoadBalancer`, which can create AWS infrastructure and 
 - Add RDS migrations rather than relying on first-boot SQL initialization.
 - Add GitHub Actions or Jenkins quality gates, Trivy image scanning, and rollback strategy.
 - Add monitoring/logging, TLS, backups, least-privilege IAM, network policies, and resource budgets.
+=======
+# billing-app
+>>>>>>> 56fb82e27828a1078c0aab110808271cdcc3daf9
