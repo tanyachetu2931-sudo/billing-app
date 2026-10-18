@@ -46,40 +46,52 @@ pipeline {
             }
         }
 
-        stage('Publish to ECR') {
-            when {
-                expression {
-                    return env.PUBLISH_TO_ECR == 'true'
-                }
-            }
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-jenkins-credentials'
-                ]]) {
-                    sh '''
-                        set -eu
-                        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-                        REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+        
+stage('Publish to ECR') {
+    when {
+        expression { env.PUBLISH_TO_ECR == 'true' }
+    }
+    steps {
+        script {
+            sh '''
+                set -eu
 
-                        aws ecr get-login-password --region "$AWS_DEFAULT_REGION" |
-                            docker login --username AWS --password-stdin "$REGISTRY"
+                ACCOUNT_ID=$(aws sts get-caller-identity \
+                    --query Account --output text)
 
-                        for APP in backend frontend; do
-                            REPO="${ECR_REPOSITORY}-${APP}"
-                            aws ecr describe-repositories \
-                                --repository-names "$REPO" \
-                                --region "$AWS_DEFAULT_REGION" >/dev/null
+                REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
 
-                            docker tag "billing-${APP}:${BUILD_NUMBER}" \
-                                "${REGISTRY}/${REPO}:${BUILD_NUMBER}"
-                            docker push "${REGISTRY}/${REPO}:${BUILD_NUMBER}"
-                        done
-                    '''
-                }
-            }
+                echo "Logging in to Amazon ECR..."
+                aws ecr get-login-password \
+                    --region "$AWS_DEFAULT_REGION" |
+                    docker login --username AWS \
+                    --password-stdin "$REGISTRY"
+
+                echo "Tagging backend image..."
+                docker tag "billing-backend:${BUILD_NUMBER}" \
+                    "$REGISTRY/billing-app-backend:${BUILD_NUMBER}"
+                docker tag "billing-backend:${BUILD_NUMBER}" \
+                    "$REGISTRY/billing-app-backend:latest"
+
+                echo "Tagging frontend image..."
+                docker tag "billing-frontend:${BUILD_NUMBER}" \
+                    "$REGISTRY/billing-app-frontend:${BUILD_NUMBER}"
+                docker tag "billing-frontend:${BUILD_NUMBER}" \
+                    "$REGISTRY/billing-app-frontend:latest"
+
+                echo "Pushing backend images..."
+                docker push "$REGISTRY/billing-app-backend:${BUILD_NUMBER}"
+                docker push "$REGISTRY/billing-app-backend:latest"
+
+                echo "Pushing frontend images..."
+                docker push "$REGISTRY/billing-app-frontend:${BUILD_NUMBER}"
+                docker push "$REGISTRY/billing-app-frontend:latest"
+
+                echo "Both application images pushed successfully."
+            '''
         }
-
+    }
+}
         stage('Deploy to EKS') {
             when {
                 expression {
